@@ -1,13 +1,12 @@
 /**
- * lib/permit/index.ts — central Permit.io helper that works both in Node
- * and in the Edge Runtime.  The Permit SDK cannot run in the Edge isolate,
- * so we return graceful fall-backs there while using a lazy dynamic import
- * (`import()`) inside Node environments.
+ * lib/permit/index.ts
+ *
+ * Central Permit.io helper that works in both Node and Edge runtimes.
+ * The official ESM bundle of `permitio` (build/module) references internal
+ * files that are missing from the published package, causing Turbopack to
+ * throw "Module not found” errors.  We therefore load the CommonJS build at
+ * runtime with `createRequire`, which is complete and stable.
  */
-
-/* -------------------------------------------------------------------------- */
-/*                              RUNTIME DETECTION                             */
-/* -------------------------------------------------------------------------- */
 
 const IS_EDGE_RUNTIME = typeof (globalThis as any).EdgeRuntime !== 'undefined'
 
@@ -29,29 +28,32 @@ if (!PERMIT_API_KEY && !IS_EDGE_RUNTIME) {
 /*                           LAZY-LOAD SDK IN NODE                            */
 /* -------------------------------------------------------------------------- */
 
-type PermitCtor = typeof import('permitio').Permit
-let _permit: InstanceType<PermitCtor> | null = null
+type PermitSdk = any // avoid importing broken ESM types
+let _permit: PermitSdk | null = null
 
-async function getPermit(): Promise<InstanceType<PermitCtor>> {
-  /* ------------------------- Edge runtime short-circuit ------------------ */
+async function getPermit(): Promise<PermitSdk> {
   if (IS_EDGE_RUNTIME) {
     throw new Error('Permit SDK unavailable in Edge runtime')
   }
-
-  /* ------------------------ Load & cache the SDK in Node ----------------- */
   if (_permit) return _permit
 
-  /* Dynamic import avoids `eval` / `require` which are disallowed in Edge. */
-  const moduleName = 'permitio' // prevent static analyser from bundling in edge
-  const { Permit } = (await import(moduleName)) as { Permit: PermitCtor }
+  /* Dynamically require the CommonJS bundle */
+  try {
+    const { createRequire } = await import('module')
+    const require = createRequire(import.meta.url)
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Permit } = require('permitio') as { Permit: PermitSdk }
 
-  _permit = new Permit({
-    token: PERMIT_API_KEY,
-    pdp: PERMIT_PDP_URL,
-    log: { level: process.env.NODE_ENV === 'development' ? 'debug' : 'error' },
-  })
-
-  return _permit
+    _permit = new Permit({
+      token: PERMIT_API_KEY,
+      pdp: PERMIT_PDP_URL,
+      log: { level: process.env.NODE_ENV === 'development' ? 'debug' : 'error' },
+    })
+    return _permit
+  } catch (err) {
+    console.error('[permit] Failed to load Permit SDK:', err)
+    throw err
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -69,7 +71,6 @@ export async function check(
   context: Record<string, unknown> = {},
   tenant = PERMIT_TENANT_KEY,
 ): Promise<boolean> {
-  /* Edge runtime cannot use the SDK – deny by default */
   if (IS_EDGE_RUNTIME) return false
 
   try {
@@ -95,7 +96,6 @@ export async function ensureUserRole(
   role: string,
   tenant = PERMIT_TENANT_KEY,
 ): Promise<void> {
-  /* Skip completely in Edge runtime */
   if (IS_EDGE_RUNTIME) return
 
   try {
