@@ -17,6 +17,7 @@ import AdminCharts from '@/components/dashboard/admin/charts'
 import CandidateCharts from '@/components/dashboard/candidate/charts'
 import IssuerCharts from '@/components/dashboard/issuer/charts'
 import RecruiterCharts from '@/components/dashboard/recruiter/charts'
+import { QuickActions } from '@/components/dashboard/quick-actions'
 import { RoleBadge } from '@/components/dashboard/role-badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { db } from '@/lib/db/drizzle'
@@ -40,6 +41,18 @@ export const revalidate = 0
 export default async function DashboardPage() {
   const user = await getUser()
   if (!user) redirect('/sign-in')
+
+  /* --------------------------- Quick actions ----------------------------- */
+  const quickActions =
+    user.role === 'admin'
+      ? [
+          {
+            label: 'View Admin Stats',
+            endpoint: '/api/admin/stats',
+            variant: 'outline',
+          },
+        ]
+      : []
 
   /* ------------------------------------------------------------------ */
   /* Candidate metrics & datasets                                       */
@@ -253,6 +266,9 @@ export default async function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick actions */}
+      {quickActions.length > 0 && <QuickActions actions={quickActions} />}
 
       {/* Metric cards */}
       <div className='grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))]'>
