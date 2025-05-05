@@ -2,7 +2,7 @@
 
 **Viskify** is a trust-layer for hiring that fuses **blockchain-signed credentials**, **AI-verified skills**, and **externally-managed authorization** into a single Next.js stack.
 
-*Candidates prove, recruiters verify, issuers endorse — all in minutes, not weeks.*
+![Landing page screenshot](public/images/screenshots/homepage.png)
 
 ---
 
@@ -20,12 +20,17 @@
 
 Viskify delegates _all_ permission decisions to a **Permit.io PDP** so code stays free of `if (role === …)` branches.
 
+![Admin stats API call screenshot](public/images/screenshots/admin-api-endpoint.png)
+![Permit.io audit log screenshot](public/images/screenshots/audit-log.png)
+
 | Concept | Viskify Mapping |
 |---------|-----------------|
 | **Roles** | `admin`, `candidate`, `recruiter`, `issuer` |
 | **Resources** | `dashboard`, `admin_stats`, plus feature-specific resources |
 | **Actions** | `view`, `read`, `create`, etc. |
 | **Policy** | `permit/policies/base.yml` (seeded via `pnpm permit:cli`) |
+
+![Admin dashboard screenshot](public/images/screenshots/admin-dashboard.png)
 
 ### Runtime flow
 
