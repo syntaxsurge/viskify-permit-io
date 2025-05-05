@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import AdminCharts from '@/components/dashboard/admin/charts'
+import AdminStatsViewer from '@/components/dashboard/admin/stats-viewer'
 import CandidateCharts from '@/components/dashboard/candidate/charts'
 import IssuerCharts from '@/components/dashboard/issuer/charts'
 import RecruiterCharts from '@/components/dashboard/recruiter/charts'
@@ -248,16 +249,16 @@ export default async function DashboardPage() {
   /* JSX                                                                */
   /* ------------------------------------------------------------------ */
   return (
-    <section className='space-y-12'>
+    <section className="space-y-12">
       {/* Greeting */}
-      <Card className='overflow-hidden'>
-        <CardContent className='p-6'>
-          <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-            <div className='space-y-1'>
-              <h1 className='text-3xl leading-tight font-extrabold tracking-tight'>
-                Welcome back, <span className='break-all'>{user.name || user.email}</span>
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-extrabold leading-tight tracking-tight">
+                Welcome back, <span className="break-all">{user.name || user.email}</span>
               </h1>
-              <p className='text-muted-foreground text-sm'>
+              <p className="text-muted-foreground text-sm">
                 Your personalised Viskify workspace overview.
               </p>
             </div>
@@ -270,8 +271,11 @@ export default async function DashboardPage() {
       {/* Quick actions */}
       {quickActions.length > 0 && <QuickActions actions={quickActions} />}
 
+      {/* Inline JSON stats viewer for admins */}
+      {user.role === 'admin' && <AdminStatsViewer />}
+
       {/* Metric cards */}
-      <div className='grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))]'>
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))]">
         {metrics[user.role]?.map((m) => (
           <MetricCard key={m.title} title={m.title} value={m.value} Icon={m.icon} />
         ))}
@@ -311,16 +315,16 @@ type MetricProps = {
 
 function MetricCard({ title, value, Icon }: MetricProps) {
   return (
-    <Card className='relative overflow-hidden shadow-sm transition-shadow hover:shadow-lg'>
+    <Card className="relative overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
       {/* Decorative background icon */}
       <Icon
-        className='text-primary/10 pointer-events-none absolute right-2 bottom-2 h-20 w-20'
-        aria-hidden='true'
+        className="pointer-events-none absolute right-2 bottom-2 h-20 w-20 text-primary/10"
+        aria-hidden="true"
       />
 
-      <CardContent className='relative z-10 p-4'>
-        <p className='text-muted-foreground text-sm font-medium'>{title}</p>
-        <p className='text-4xl font-extrabold tracking-tight'>{value}</p>
+      <CardContent className="relative z-10 p-4">
+        <p className="text-muted-foreground text-sm font-medium">{title}</p>
+        <p className="text-4xl font-extrabold tracking-tight">{value}</p>
       </CardContent>
     </Card>
   )
