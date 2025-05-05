@@ -71,9 +71,6 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@types/node':
-        specifier: ^22.14.0
-        version: 22.15.3
       '@types/react':
         specifier: 19.1.0
         version: 19.1.0
@@ -177,6 +174,9 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.1
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.27.0
         version: 8.31.1(@typescript-eslint/parser@8.31.1(eslint@9.26.0(jiti@2.4.2))(typescript@5.8.3))(eslint@9.26.0(jiti@2.4.2))(typescript@5.8.3)
