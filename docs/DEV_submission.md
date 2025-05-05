@@ -50,8 +50,8 @@ pnpm dev
 
 | Role  | Email / Username | Password          |
 | ----- | ---------------- | ----------------- |
-| Admin | **admin**        | 2025DEVChallenge  |
-| User  | **newuser**      | 2025DEVChallenge  |
+| Admin | **admin@test.com**        | myPassword  |
+| User  | **candidate@test.com**      | myPassword  |
 
 ## ✅ Verification Steps
 
