@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { signToken, verifyToken } from '@/lib/auth/session'
-import { check } from '@/lib/permit'
+import { check, ensureUserRole } from '@/lib/permit'
 
 const PROTECTED_PREFIX = '/dashboard'
 const FORBIDDEN_PATH = '/403'
@@ -30,15 +30,20 @@ export async function middleware(request: NextRequest) {
           // tolerate different payload shapes
           (session as any).id ?? (session as any).userId ?? ''
 
+        const role =
+          (session as any).role ??
+          (session as any).user?.role ??
+          (session as any).payload?.role ??
+          ''
+
+        // Ensure Permit knows about this user and its role before evaluating the policy
+        if (role) {
+          await ensureUserRole(userId, role)
+        }
+
         const permitted = await check(userId, 'view', 'dashboard')
 
         if (!permitted) {
-          const role =
-            (session as any).role ??
-            (session as any).user?.role ??
-            (session as any).payload?.role ??
-            ''
-
           const allowedRoles = ['admin', 'candidate', 'recruiter', 'issuer']
           if (!allowedRoles.includes(role)) {
             return NextResponse.redirect(new URL(FORBIDDEN_PATH, request.url))

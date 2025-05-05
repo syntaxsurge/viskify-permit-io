@@ -1,101 +1,96 @@
-/*
- * Central Permit.io helper
- * - check():  PDP allow/deny
- * - ensureUserRole():  sync user + role via Permit REST API
- * The implementation avoids importing the faulty `permitio` SDK so the build succeeds
- * with Turbopack while still providing full RBAC capability.
- */
-
-const TOKEN = process.env.PERMIT_API_KEY ?? ''
-const PDP_URL = process.env.PERMIT_PDP_URL || 'https://cloudpdp.api.permit.io'
-const PROJECT_ID = process.env.PERMIT_PROJECT_ID ?? ''
-const ENV_ID = process.env.PERMIT_ENV_ID || 'default'
-const API_URL = 'https://api.permit.io/v2'
-
-/* -------------------------------------------------------------------------- */
-/*                               ROLE SYNCHRONISER                            */
-/* -------------------------------------------------------------------------- */
-
 /**
- * Idempotently creates or updates a user in Permit and assigns a top-level role.
- * Uses the default tenant key "default".
+ * Centralised Permit.io helper built around the official Node SDK.
+ * The SDK is loaded lazily with CommonJS require to sidestep missing
+ * sub-path exports and to keep Edge-runtime builds free of Node core
+ * dependencies.
  */
-export async function ensureUserRole(
-  userId: string,
-  role: string,
-  tenant = 'default',
-): Promise<void> {
-  if (!TOKEN || !PROJECT_ID) return // silent no-op in local dev without keys
 
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${TOKEN}`,
-  }
+/* -------------------------------------------------------------------------- */
+/*                               Configuration                                */
+/* -------------------------------------------------------------------------- */
 
-  try {
-    /* Sync user (creates if missing) */
-    await fetch(`${API_URL}/facts/${PROJECT_ID}/${ENV_ID}/users`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ key: userId }),
-    })
+const {
+  PERMIT_API_KEY = '',
+  PERMIT_PDP_URL = 'http://localhost:7766', // Local PDP by default
+  PERMIT_TENANT_KEY = 'default',
+} = process.env
 
-    /* Assign role */
-    await fetch(`${API_URL}/facts/${PROJECT_ID}/${ENV_ID}/role_assignments`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ user: userId, role, tenant }),
-    })
-  } catch (err) {
-    console.error('[permit] ensureUserRole REST error:', err)
-  }
+if (!PERMIT_API_KEY) {
+  throw new Error('PERMIT_API_KEY environment variable must be provided')
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              PDP CHECK HELPER                              */
+/*                       Lazy initialisation of the SDK                       */
+/* -------------------------------------------------------------------------- */
+
+type PermitType = typeof import('permitio').Permit
+let _permit: InstanceType<PermitType> | null = null
+
+/**
+ * Dynamically loads the CommonJS build of the Permit SDK the first time it is
+ * needed.  Using eval('require') avoids bundling Node core modules, keeping
+ * Edge runtimes happy while still working in Node.js.
+ */
+async function getPermit() {
+  if (_permit) return _permit
+
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  const requireFn: NodeRequire | undefined = (globalThis as any).require || eval('require')
+  if (!requireFn) {
+    throw new Error('Permit SDK cannot be loaded in this runtime environment')
+  }
+
+  const { Permit } = requireFn('permitio') as { Permit: PermitType }
+  _permit = new Permit({
+    token: PERMIT_API_KEY,
+    pdp: PERMIT_PDP_URL,
+    log: { level: 'debug' }, // For verbose logging
+  })
+
+  return _permit
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Permission enforcement API                        */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Calls the PDP /​v2/check endpoint to evaluate a policy decision.
- * Returns true when permitted; false otherwise (network errors included).
+ * Returns `true` when the user is permitted to perform the action on the
+ * resource within the given tenant; denies by default on errors.
  */
 export async function check(
   userId: string,
   action: string,
   resource: string,
   context: Record<string, unknown> = {},
+  tenant = PERMIT_TENANT_KEY,
 ): Promise<boolean> {
-  if (!TOKEN) {
-    console.warn('[permit] PERMIT_API_KEY is not set – denying by default')
-    return false
-  }
-
   try {
-    const res = await fetch(`${PDP_URL}/v2/check`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${TOKEN}`,
-      },
-      body: JSON.stringify({
-        user: String(userId),
-        action,
-        resource,
-        context,
-      }),
-    })
-
-    if (!res.ok) {
-      console.error('[permit] PDP responded with status', res.status)
-      return false
-    }
-
-    const json = (await res.json()) as { allow?: boolean }
-    return json.allow === true
-  } catch (err) {
-    console.error('[permit] PDP check failed:', err)
-    return false
+    const permit = await getPermit()
+    return await permit.check({ key: userId }, action, resource, { tenant, ...context })
+  } catch {
+    return false // fail-closed
   }
 }
 
-export default { check, ensureUserRole }
+/* -------------------------------------------------------------------------- */
+/*                   User synchronisation & role assignment                   */
+/* -------------------------------------------------------------------------- */
+
+export async function ensureUserRole(
+  userId: string,
+  role: string,
+  tenant = PERMIT_TENANT_KEY,
+): Promise<void> {
+  const permit = await getPermit()
+
+  // Upsert user
+  await permit.api.users.sync({ key: userId })
+
+  // Assign role; ignore conflicts
+  try {
+    await permit.api.roleAssignments.assign({ user: userId, role, tenant })
+  } catch (err: any) {
+    if (err?.response?.status !== 409) throw err
+  }
+}
