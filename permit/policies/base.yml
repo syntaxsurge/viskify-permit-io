@@ -1,0 +1,23 @@
+version: v2
+type: POLICY
+name: base
+description: Base RBAC policy for Viskify platform
+roles:
+  candidate:
+    description: Authenticated end users applying for jobs
+  recruiter:
+    description: Company recruiters managing talent pipelines
+  issuer:
+    description: Trusted organizations issuing credential verifications
+  admin:
+    description: Platform administrators with full access
+resources:
+  admin_stats:
+    description: Aggregated administrative statistics
+    actions:
+      read:
+        description: Read platform statistics
+grants:
+  - role: admin
+    resource: admin_stats
+    actions: ['read']
