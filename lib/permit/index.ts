@@ -4,8 +4,12 @@
  * Central Permit.io helper that works in both Node and Edge runtimes.
  * The official ESM bundle of `permitio` (build/module) references internal
  * files that are missing from the published package, causing Turbopack to
- * throw "Module not found” errors.  We therefore load the CommonJS build at
+ * throw "Module not found” errors. We therefore load the CommonJS build at
  * runtime with `createRequire`, which is complete and stable.
+ *
+ * In some production builds the CommonJS export shape differs (e.g. default
+ * export, named export, or the module itself being the constructor).  We now
+ * dynamically resolve the constructor to handle all shapes gracefully.
  */
 
 const IS_EDGE_RUNTIME = typeof (globalThis as any).EdgeRuntime !== 'undefined'
@@ -42,9 +46,26 @@ async function getPermit(): Promise<PermitSdk> {
     const { createRequire } = await import('module')
     const require = createRequire(import.meta.url)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Permit } = require('permitio') as { Permit: PermitSdk }
+    const permitModule = require('permitio') as any
 
-    _permit = new Permit({
+    /**
+     * Support every possible export shape:
+     *  1. { Permit }                  – named export
+     *  2. { default: { Permit } }     – nested under default
+     *  3. { default: Constructor }    – default _is_ the constructor
+     *  4. Constructor                 – module itself is the constructor
+     */
+    const PermitCtor =
+      permitModule?.Permit ??
+      permitModule?.default?.Permit ??
+      permitModule?.default ??
+      permitModule
+
+    if (typeof PermitCtor !== 'function') {
+      throw new Error('Permit constructor not found in permitio package')
+    }
+
+    _permit = new PermitCtor({
       token: PERMIT_API_KEY,
       pdp: PERMIT_PDP_URL,
       log: { level: process.env.NODE_ENV === 'development' ? 'debug' : 'error' },
