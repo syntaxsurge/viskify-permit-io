@@ -20,8 +20,8 @@ async function main() {
   console.log(`🛂  Applying Permit.io policies from ${policyDir}`)
 
   try {
-    await run('pnpm', ['exec', 'permit', 'login', '--token', process.env.PERMIT_API_KEY ?? ''])
-    await run('pnpm', ['exec', 'permit', 'apply', '-f', policyDir])
+    await run('pnpm', ['dlx', '@permitio/cli', 'login', '--token', process.env.PERMIT_API_KEY ?? ''])
+    await run('pnpm', ['dlx', '@permitio/cli', 'apply', '-f', policyDir])
     console.log('✅  Permit.io policies applied successfully')
   } catch (error) {
     console.error('❌  Failed to apply Permit.io policies')
