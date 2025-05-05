@@ -1,9 +1,9 @@
 services:
   postgres:
     image: postgres:16.4-alpine
-    container_name: viskify_postgres
+    container_name: viskify_permit_postgres
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: viskify_permit_postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
