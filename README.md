@@ -22,12 +22,12 @@ Candidates create a **single verifiable profile for free**, recruiters instantly
 
 ## 🗺️ High-Level Workflow
 
-1. **Account & Team Setup** - email sign-up, auto-team creation, optional invites.
-2. **Profile & Credential Vault** - candidates upload credentials (default **Unverified**).
-3. **Verification Request** - select issuer from directory → issuer notified.
-4. **Issuer Review** - approve → VC signed on cheqd, reject → status updated.
-5. **AI Skill-Check** - pass quiz ≥ threshold → SkillPass VC minted.
-6. **Talent Discovery** - recruiters filter/search, add to pipelines, invite.
+1. **Account & Team Setup** – email sign-up, auto-team creation, optional invites.
+2. **Profile & Credential Vault** – candidates upload credentials (default **Unverified**).
+3. **Verification Request** – select issuer from directory → issuer notified.
+4. **Issuer Review** – approve → VC signed on cheqd, reject → status updated.
+5. **AI Skill-Check** – pass quiz ≥ 70 % → SkillPass VC minted.
+6. **Talent Discovery** – recruiters filter/search, add to pipelines, invite.
 
 ---
 
@@ -41,51 +41,104 @@ Candidates create a **single verifiable profile for free**, recruiters instantly
 | **Auth**     | Signed HttpOnly cookie sessions; bcrypt hashes                                         |
 | **VC Layer** | cheqd Studio API for DID & VC issuance / verification                                  |
 | **Payments** | Stripe SDK & Webhooks                                                                  |
-| **CI / CD**  | (omitted - DevOps out-of-scope for this doc)                                           |
+| **CI / CD**  | (omitted – DevOps out-of-scope for this doc)                                           |
 
 > **Stateless server actions** + **typed drizzle queries** keep business logic close to the data while preserving React’s streaming benefits.
 
+---
+
+## 🚀 Permit.io Authorization Challenge
+
+This repository is an entry for the **Permit.io "Permissions Redefined” challenge** showcasing fine-grained externalised authorization in a real-world hiring platform.
+
+### Quick local setup
+
+1. Ensure **Permit CLI** is installed and you have a project API token.
+2. Copy environment template and fill Permit keys:
+
+~~~bash
+cp .env.example .env
+echo "PERMIT_API_KEY=pk_live_your_token" >> .env
+echo "PERMIT_PROJECT_ID=prj_your_id"     >> .env
+~~~
+
+3. Apply the predefined RBAC policy:
+
+~~~bash
+pnpm permit:cli
+~~~
+
+4. Start the stack:
+
+~~~bash
+pnpm install
+pnpm db:push
+pnpm db:seed
+pnpm dev
+~~~
+
+### Test the authorization flow
+
+Login as **admin / 2025DEVChallenge** then hit the secret endpoint:
+
+~~~bash
+curl -b cookie.txt -c cookie.txt http://localhost:3000/api/admin/stats
+# → { "users": 42, "credentials": 128 }
+~~~
+
+Logout or switch to the **newuser / 2025DEVChallenge** account and retry – you should receive `401 unauthorized`.
+
+### Explore and tweak policies
+
+~~~bash
+permit ui --open
+~~~
+
+Use the Permit dashboard to edit roles, actions or resources and watch the app respond in real time.
+
+---
+
 ## 🚀 Getting Started
 
-# 1. Install deps
+### 1 · Install dependencies
 
-```bash
+~~~bash
 pnpm install
-```
+~~~
 
-# 2. Copy & fill env vars
+### 2 · Copy & fill env vars
 
-```bash
+~~~bash
 cp .env.example .env
-```
+~~~
 
-# 3. Run DB migrations & seed data
+### 3 · Run DB migrations & seed data
 
-```bash
+~~~bash
 pnpm db:push     # drizzle-kit push
 pnpm db:seed     # seeds users, quizzes, stripe products
-```
+~~~
 
-# 4. Dev server
+### 4 · Dev server
 
-```bash
+~~~bash
 pnpm dev
-```
+~~~
 
-Navigate to http://localhost:3000 - sign up and explore for free.
+Navigate to **http://localhost:3000** – sign up and explore for free.
 
-⸻
+---
 
-🛠️ Engineering Notes
+### 🛠️ Engineering Notes
 
-- Type Safety - End-to-end zod validation on every mutation, plus drizzle-orm type inference.
-- UI Guidelines - All components use Tailwind, shadcn/ui, 2xl rounded corners, XL headings, soft shadows.
-- Accessibility - Focus rings, semantic HTML tags, aria-hidden handled where necessary.
-- Caching - revalidate directives keep the landing static while dynamic sections (pricing) are server rendered every hour.
-- Security - VC issuance keys & Stripe secrets never leak to the client; server actions enforce role-based guards.
+* **Type Safety** – end-to-end zod validation on every mutation, plus drizzle-orm type inference.
+* **UI Guidelines** – Tailwind, shadcn/ui, 2xl rounded corners, XL headings, soft shadows.
+* **Accessibility** – focus rings, semantic HTML tags, aria-hidden handled where necessary.
+* **Caching** – `revalidate` directives keep the landing static while dynamic sections re-render hourly.
+* **Security** – VC issuance keys & Stripe secrets never leak to the client; server actions enforce role-based guards.
 
-⸻
+---
 
-📜 License
+### 📜 License
 
 MIT © 2025 Viskify
