@@ -45,7 +45,7 @@ async function getPermit(): Promise<InstanceType<PermitCtor>> {
   if (_permit) return _permit
 
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const req: NodeRequire | undefined =
+  const req: NodeJS.Require | undefined =
     // Prefer the global require injected by Node; fall back to eval-hack for ESM runtimes
     (globalThis as any).require || (typeof eval === 'function' ? eval('require') : undefined)
 
