@@ -4,8 +4,13 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 import eslintPluginImport from 'eslint-plugin-import'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import unusedImports from 'eslint-plugin-unused-imports'
+import yamlParser from 'yaml-eslint-parser'
+import eslintPluginYml from 'eslint-plugin-yml'
 
 export default [
+  /* ----------------------------------------------------- */
+  /* Global settings                                       */
+  /* ----------------------------------------------------- */
   {
     ignores: [
       '**/node_modules/**',
@@ -29,7 +34,13 @@ export default [
       '**/.DS_Store',
     ],
   },
+
+  /* Prettier config-turnoff to let Prettier handle style */
   eslintConfigPrettier,
+
+  /* ----------------------------------------------------- */
+  /* TypeScript / TSX rules                                */
+  /* ----------------------------------------------------- */
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -92,6 +103,24 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      'prettier/prettier': 'warn',
+    },
+  },
+
+  /* ----------------------------------------------------- */
+  /* YAML (Permit policy) rules                            */
+  /* ----------------------------------------------------- */
+  {
+    files: ['permit/**/*.y?(a)ml'],
+    languageOptions: {
+      parser: yamlParser,
+    },
+    plugins: {
+      yml: eslintPluginYml,
+      prettier: eslintPluginPrettier,
+    },
+    rules: {
+      /* Use Prettier for formatting; enable any yml-specific rules as needed */
       'prettier/prettier': 'warn',
     },
   },
