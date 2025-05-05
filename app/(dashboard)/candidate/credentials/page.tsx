@@ -21,11 +21,7 @@ export const revalidate = 0
 type Query = Record<string, string | string[] | undefined>
 const first = (p: Query, k: string) => (Array.isArray(p[k]) ? p[k]?.[0] : p[k])
 
-export default async function CredentialsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Query> | Query
-}) {
+export default async function CredentialsPage({ searchParams }: { searchParams: Promise<Query> }) {
   const params = (await searchParams) as Query
 
   /* -------------------------- Auth -------------------------- */

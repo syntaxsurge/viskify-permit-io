@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog'
 import { STAGES, type Stage } from '@/lib/constants/recruiter'
 
+type ActionResult = Awaited<ReturnType<typeof updateCandidateStageAction>>
+
 interface Props {
   pipelineCandidateId: number
   currentStage: Stage
@@ -29,21 +31,29 @@ export default function EditCandidateModal({ pipelineCandidateId, currentStage, 
   const [stage, setStage] = useState<Stage>(currentStage)
   const [isPending, startTransition] = useTransition()
 
-  function handleSave() {
-    startTransition(async () => {
-      const fd = new FormData()
-      fd.append('pipelineCandidateId', String(pipelineCandidateId))
-      fd.append('stage', stage)
-      const res = await updateCandidateStageAction({}, fd)
-      if (res?.error) {
-        toast.error(res.error)
-      } else {
-        toast.success('Candidate updated.')
+  async function handleSave(): Promise<ActionResult> {
+    const fd = new FormData()
+    fd.append('pipelineCandidateId', String(pipelineCandidateId))
+    fd.append('stage', stage)
+
+    // Call the server action
+    const res = await updateCandidateStageAction({}, fd)
+
+    if (res.error) {
+      toast.error(res.error)
+    } else {
+      toast.success('Candidate updated.')
+
+      // Non-blocking UI updates:
+      startTransition(() => {
         setOpen(false)
         /* Mild refresh to keep board in sync; heavy reload avoided intentionally */
         window.location.reload()
-      }
-    })
+      })
+    }
+
+    // 💡  returning the server result satisfies ActionButton’s contract
+    return res
   }
 
   return (

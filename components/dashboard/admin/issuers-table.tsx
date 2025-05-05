@@ -42,7 +42,7 @@ export interface RowType {
   id: number
   name: string
   domain: string
-  owner: string
+  owner: string | null
   category: string
   industry: string
   status: string

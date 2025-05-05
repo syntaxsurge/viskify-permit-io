@@ -79,21 +79,32 @@ function RowActions({ row }: { row: RowType }) {
 function buildBulkActions(router: ReturnType<typeof useRouter>): BulkAction<RowType>[] {
   const [isPending, startTransition] = React.useTransition()
 
+  /* ---------------------------------------------------- */
+  /* inside buildBulkActions()                            */
+  /* ---------------------------------------------------- */
+
+  type RejectResult = { error: string } | { success: string }
+
   async function bulkReject(rows: RowType[]) {
     const toastId = toast.loading('Rejecting…')
-    const results = await Promise.all(
+
+    const results: RejectResult[] = await Promise.all(
       rows.map(async (cred) => {
         const fd = new FormData()
         fd.append('credentialId', cred.id.toString())
         return rejectCredentialAction({}, fd)
       }),
     )
-    const errors = results.filter((r) => r?.error).map((r) => r!.error)
+
+    // 1️⃣  Narrow to objects that actually contain `error`
+    const errors = results.filter((r): r is { error: string } => 'error' in r).map((r) => r.error)
+
     if (errors.length) {
       toast.error(errors.join('\n'), { id: toastId })
     } else {
       toast.success('Credentials rejected.', { id: toastId })
     }
+
     router.refresh()
   }
 

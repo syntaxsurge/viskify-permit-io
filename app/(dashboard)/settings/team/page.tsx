@@ -26,11 +26,7 @@ function getParam(params: Query, key: string): string | undefined {
 /*                                    Page                                    */
 /* -------------------------------------------------------------------------- */
 
-export default async function TeamSettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Query> | Query
-}) {
+export default async function TeamSettingsPage({ searchParams }: { searchParams: Promise<Query> }) {
   const params = (await searchParams) as Query
 
   const user = await getUser()

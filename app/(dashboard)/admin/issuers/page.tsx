@@ -21,11 +21,7 @@ const first = (p: Query, k: string) => (Array.isArray(p[k]) ? p[k]?.[0] : p[k])
 /*                                    Page                                    */
 /* -------------------------------------------------------------------------- */
 
-export default async function AdminIssuersPage({
-  searchParams,
-}: {
-  searchParams: Promise<Query> | Query
-}) {
+export default async function AdminIssuersPage({ searchParams }: { searchParams: Promise<Query> }) {
   const params = (await searchParams) as Query
 
   const currentUser = await getUser()

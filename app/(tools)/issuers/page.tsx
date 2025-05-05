@@ -28,7 +28,7 @@ const first = (p: Query, k: string) => (Array.isArray(p[k]) ? p[k]?.[0] : p[k])
 export default async function IssuerDirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<Query> | Query
+  searchParams: Promise<Query>
 }) {
   const params = (await searchParams) as Query
 

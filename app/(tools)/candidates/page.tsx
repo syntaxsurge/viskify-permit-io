@@ -30,7 +30,7 @@ function first(p: Query, k: string) {
 export default async function CandidateDirectoryPage({
   searchParams,
 }: {
-  searchParams: Query | Promise<Query>
+  searchParams: Promise<Query>
 }) {
   /* ----------------------------- Read params ---------------------------- */
   const params = (await searchParams) as Query

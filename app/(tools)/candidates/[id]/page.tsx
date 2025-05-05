@@ -68,8 +68,8 @@ export default async function PublicCandidateProfile({
   params,
   searchParams,
 }: {
-  params: Params | Promise<Params>
-  searchParams: Query | Promise<Query>
+  params: Promise<Query>
+  searchParams: Promise<Query>
 }) {
   const { id } = await params
   const candidateId = Number(id)

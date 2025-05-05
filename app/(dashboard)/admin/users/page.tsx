@@ -26,11 +26,7 @@ function getParam(params: Query, key: string): string | undefined {
 /*                                    Page                                    */
 /* -------------------------------------------------------------------------- */
 
-export default async function AdminUsersPage({
-  searchParams,
-}: {
-  searchParams: Promise<Query> | Query
-}) {
+export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<Query> }) {
   const params = (await searchParams) as Query
 
   const currentUser = await getUser()

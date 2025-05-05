@@ -18,11 +18,7 @@ function getParam(params: Query, key: string): string | undefined {
   return Array.isArray(v) ? v[0] : v
 }
 
-export default async function ActivityPage({
-  searchParams,
-}: {
-  searchParams: Promise<Query> | Query
-}) {
+export default async function ActivityPage({ searchParams }: { searchParams: Promise<Query> }) {
   const params = (await searchParams) as Query
 
   const user = await getUser()

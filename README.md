@@ -188,6 +188,10 @@ Tail the terminal to see `[permit.check]` logs confirming PDP decisions.
 
 ---
 
+### 📚 Further Reading
+
+- [Viskify: Hiring on Proof, Not Promises – with Permit.io-powered RBAC & Verifiable Credentials](https://dev.to/syntaxsurge/viskify-hiring-on-proof-not-promises-with-permitio-powered-rbac-verifiable-credentials-2gpo)
+
 ### 🤝 Credits
 
 - **Permit.io** for the elegant PDP & CLI.

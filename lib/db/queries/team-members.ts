@@ -76,5 +76,10 @@ export async function getTeamMembersPage(
   const hasNext = rows.length > pageSize
   if (hasNext) rows.pop()
 
-  return { members: rows, hasNext }
+  const sanitizedRows: TeamMemberRow[] = rows.map((r) => ({
+    ...r,
+    email: r.email ?? '',
+  }))
+
+  return { members: sanitizedRows, hasNext }
 }

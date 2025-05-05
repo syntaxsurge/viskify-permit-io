@@ -66,20 +66,18 @@ export async function getSession() {
 export async function setSession(user: NewUser) {
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
+  // 1️⃣  – make sure we really have a role (or provide a fallback)
+  if (!user.role) {
+    user.role = ''
+  }
+
   const session: SessionData = {
-    user: { id: user.id!, role: user.role },
+    user: { id: user.id!, role: user.role }, // ✅ now always `string`
     expires: expiresInOneDay.toISOString(),
   }
 
   const encryptedSession = await signToken(session)
   const cookiesStore = await cookies()
-
-  console.log('[setSession] Writing session cookie', {
-    userId: user.id,
-    role: user.role,
-    expires: session.expires,
-    secure: isProd,
-  })
 
   cookiesStore.set('session', encryptedSession, {
     expires: expiresInOneDay,

@@ -4,18 +4,26 @@ import { db } from '../drizzle'
 import { users as usersT } from '../schema/core'
 import { issuers as issuersT } from '../schema/issuer'
 
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
+
 export type AdminIssuerRow = {
   id: number
   name: string
   domain: string
-  owner: string
+  owner: string | null
   category: string
   industry: string
   status: string
 }
 
+/* -------------------------------------------------------------------------- */
+/*                            PAGINATED QUERY FUNCTON                         */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Return a page of issuers with full‑text search, sorting and pagination.
+ * Return a page of issuers with full-text search, sorting and pagination.
  */
 export async function getAdminIssuersPage(
   page: number,
@@ -26,7 +34,7 @@ export async function getAdminIssuersPage(
 ): Promise<{ issuers: AdminIssuerRow[]; hasNext: boolean }> {
   const offset = (page - 1) * pageSize
 
-  /* --------------------------- ORDER BY helper --------------------------- */
+  /* --------------------------- ORDER BY helper --------------------------- */
   const orderBy =
     sortBy === 'name'
       ? order === 'asc'
@@ -52,12 +60,12 @@ export async function getAdminIssuersPage(
                 ? order === 'asc'
                   ? asc(issuersT.status)
                   : desc(issuersT.status)
-                : order === 'asc'
+                : /* id fallback */ order === 'asc'
                   ? asc(issuersT.id)
                   : desc(issuersT.id)
 
   /* ----------------------------- WHERE clause ---------------------------- */
-  const where =
+  const whereCondition =
     searchTerm.trim().length === 0
       ? undefined
       : or(
@@ -66,8 +74,8 @@ export async function getAdminIssuersPage(
           ilike(usersT.email, `%${searchTerm}%`),
         )
 
-  /* ------------------------------ Query ---------------------------------- */
-  let q = db
+  /* ------------------------------ BASE QUERY ----------------------------- */
+  const baseQuery = db
     .select({
       id: issuersT.id,
       name: issuersT.name,
@@ -80,9 +88,11 @@ export async function getAdminIssuersPage(
     .from(issuersT)
     .leftJoin(usersT, eq(issuersT.ownerUserId, usersT.id))
 
-  if (where) q = q.where(where)
+  /* ------------------------------ APPLY WHERE ---------------------------- */
+  const query = whereCondition ? baseQuery.where(whereCondition) : baseQuery
 
-  const rows = await q
+  /* ------------------------------ EXECUTION ------------------------------ */
+  const rows = await query
     .orderBy(orderBy)
     .limit(pageSize + 1)
     .offset(offset)
@@ -90,5 +100,5 @@ export async function getAdminIssuersPage(
   const hasNext = rows.length > pageSize
   if (hasNext) rows.pop()
 
-  return { issuers: rows, hasNext }
+  return { issuers: rows as AdminIssuerRow[], hasNext }
 }

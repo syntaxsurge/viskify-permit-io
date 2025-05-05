@@ -27,7 +27,7 @@ import { DataTable, type Column, type BulkAction } from '@/components/ui/tables/
 export interface RowType {
   id: number
   title: string
-  candidate: string
+  candidate: string | null
   issuer: string | null
   status: string
 }
@@ -43,7 +43,7 @@ interface CredentialsTableProps {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                               Helpers                                      */
+/*                               Helpers                                      */
 /* -------------------------------------------------------------------------- */
 
 function buildLink(base: string, init: Record<string, string>, overrides: Record<string, any>) {
@@ -57,7 +57,7 @@ function buildLink(base: string, init: Record<string, string>, overrides: Record
 }
 
 /* -------------------------------------------------------------------------- */
-/*                              Row‑level actions                             */
+/*                              Row-level actions                             */
 /* -------------------------------------------------------------------------- */
 
 function RowActions({ id }: { id: number }) {
@@ -187,7 +187,7 @@ export default function AdminCredentialsTable({
         key: 'candidate',
         header: sortableHeader('Candidate', 'candidate'),
         sortable: false,
-        render: (v) => String(v),
+        render: (v) => (v ? String(v) : '—'),
       },
       {
         key: 'issuer',

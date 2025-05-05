@@ -9,16 +9,24 @@ import {
 import { users as usersT } from '../schema/core'
 import { issuers as issuersT } from '../schema/issuer'
 
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
+
 export type AdminCredentialRow = {
   id: number
   title: string
   status: CredentialStatus
-  candidate: string
+  candidate: string | null
   issuer: string | null
 }
 
+/* -------------------------------------------------------------------------- */
+/*                            PAGINATED QUERY FUNCTON                         */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Return a page of credentials with full‑text search, sorting and pagination.
+ * Return a page of credentials with full-text search, sorting and pagination.
  */
 export async function getAdminCredentialsPage(
   page: number,
@@ -29,7 +37,7 @@ export async function getAdminCredentialsPage(
 ): Promise<{ credentials: AdminCredentialRow[]; hasNext: boolean }> {
   const offset = (page - 1) * pageSize
 
-  /* ---------- order by ---------- */
+  /* --------------------------- ORDER BY helper --------------------------- */
   const orderBy =
     sortBy === 'title'
       ? order === 'asc'
@@ -51,8 +59,8 @@ export async function getAdminCredentialsPage(
               ? asc(credsT.id)
               : desc(credsT.id)
 
-  /* ---------- where ---------- */
-  const where =
+  /* ----------------------------- WHERE clause ---------------------------- */
+  const whereCondition =
     searchTerm.trim().length === 0
       ? undefined
       : or(
@@ -61,8 +69,8 @@ export async function getAdminCredentialsPage(
           ilike(issuersT.name, `%${searchTerm}%`),
         )
 
-  /* ---------- query ---------- */
-  let q = db
+  /* ------------------------------ BASE QUERY ----------------------------- */
+  const baseQuery = db
     .select({
       id: credsT.id,
       title: credsT.title,
@@ -75,15 +83,26 @@ export async function getAdminCredentialsPage(
     .leftJoin(usersT, eq(candT.userId, usersT.id))
     .leftJoin(issuersT, eq(credsT.issuerId, issuersT.id))
 
-  if (where) q = q.where(where)
+  /* ------------------------------ APPLY WHERE ---------------------------- */
+  const query = whereCondition ? baseQuery.where(whereCondition) : baseQuery
 
-  const rows = await q
+  /* ------------------------------ EXECUTION ------------------------------ */
+  const rows = await query
     .orderBy(orderBy)
     .limit(pageSize + 1)
     .offset(offset)
 
   const hasNext = rows.length > pageSize
-  if (hasNext) rows.pop()
+  const slicedRows = hasNext ? rows.slice(0, pageSize) : rows
 
-  return { credentials: rows, hasNext }
+  /* ---------------------------- TYPE MAPPING ----------------------------- */
+  const credentials: AdminCredentialRow[] = slicedRows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    status: r.status as CredentialStatus,
+    candidate: r.candidate,
+    issuer: r.issuer,
+  }))
+
+  return { credentials, hasNext }
 }

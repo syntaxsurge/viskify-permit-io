@@ -279,27 +279,27 @@ export default function InvitationsTable({
   }
 
   /* ------------------------ Column definitions --------------------------- */
-  const columns = React.useMemo<Column<RowType>[]>(() => {
-    return [
+  const columns = React.useMemo<Column<RowType>[]>(
+    () => [
       {
         key: 'team',
         header: sortableHeader('Team', 'team'),
         sortable: false,
-        render: (v) => <span className='font-medium'>{v as string}</span>,
+        render: (v) => <span className='font-medium'>{String(v)}</span>,
       },
       {
         key: 'role',
         header: sortableHeader('Role', 'role'),
         sortable: false,
         className: 'capitalize',
-        render: (v) => v as string,
+        render: (v) => <span>{String(v)}</span>,
       },
       {
         key: 'inviter',
         header: sortableHeader('Invited By', 'inviter'),
         sortable: false,
         className: 'break-all',
-        render: (v) => v || '—',
+        render: (v) => <span>{v ? String(v) : '—'}</span>,
       },
       {
         key: 'status',
@@ -311,7 +311,7 @@ export default function InvitationsTable({
         key: 'invitedAt',
         header: sortableHeader('Invited', 'invitedAt'),
         sortable: false,
-        render: (v) => formatDistanceToNow(v as Date, { addSuffix: true }),
+        render: (v) => <span>{formatDistanceToNow(v as Date, { addSuffix: true })}</span>,
       },
       {
         key: 'id',
@@ -320,8 +320,9 @@ export default function InvitationsTable({
         sortable: false,
         render: (_v, row) => <RowActions row={row} />,
       },
-    ]
-  }, [sort, order, basePath, initialParams, search])
+    ],
+    [sort, order, basePath, initialParams, search],
+  )
 
   /* ----------------------------- Render ---------------------------------- */
   return (

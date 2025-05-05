@@ -3,6 +3,10 @@ import { asc, desc, ilike, or } from 'drizzle-orm'
 import { db } from '../drizzle'
 import { users } from '../schema/core'
 
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
+
 export type AdminUserRow = {
   id: number
   name: string | null
@@ -11,8 +15,12 @@ export type AdminUserRow = {
   createdAt: Date
 }
 
+/* -------------------------------------------------------------------------- */
+/*                              PAGINATED QUERY                               */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Return a page of users with optional full‑text search, sorting and pagination.
+ * Return a page of users with optional full-text search, sorting and pagination.
  */
 export async function getAdminUsersPage(
   page: number,
@@ -23,7 +31,7 @@ export async function getAdminUsersPage(
 ): Promise<{ users: AdminUserRow[]; hasNext: boolean }> {
   const offset = (page - 1) * pageSize
 
-  /* --------------------------- ORDER BY helper --------------------------- */
+  /* --------------------------- ORDER BY helper --------------------------- */
   const orderBy =
     sortBy === 'name'
       ? order === 'asc'
@@ -42,13 +50,14 @@ export async function getAdminUsersPage(
             : desc(users.createdAt)
 
   /* ----------------------------- WHERE clause ---------------------------- */
-  const whereClause =
-    searchTerm.trim().length === 0
-      ? null
-      : or(ilike(users.name, `%${searchTerm}%`), ilike(users.email, `%${searchTerm}%`))
+  const trimmed = searchTerm.trim()
+  const whereCondition =
+    trimmed.length === 0
+      ? undefined
+      : or(ilike(users.name, `%${trimmed}%`), ilike(users.email, `%${trimmed}%`))
 
-  /* ------------------------------ Query ---------------------------------- */
-  let q = db
+  /* ------------------------------ QUERY BUILD ---------------------------- */
+  const baseQuery = db
     .select({
       id: users.id,
       name: users.name,
@@ -58,9 +67,10 @@ export async function getAdminUsersPage(
     })
     .from(users)
 
-  if (whereClause) q = q.where(whereClause)
+  const query = whereCondition ? baseQuery.where(whereCondition) : baseQuery
 
-  const rows = await q
+  /* ------------------------------ EXECUTION ------------------------------ */
+  const rows = await query
     .orderBy(orderBy)
     .limit(pageSize + 1)
     .offset(offset)
