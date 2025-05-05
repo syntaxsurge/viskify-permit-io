@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
           // tolerate different payload shapes
           (session as any).id ?? (session as any).userId ?? ''
 
-        const permitted = await check(userId, 'view', pathname)
+        const permitted = await check(userId, 'view', 'dashboard')
 
         if (!permitted) {
           return NextResponse.redirect(new URL(FORBIDDEN_PATH, request.url))

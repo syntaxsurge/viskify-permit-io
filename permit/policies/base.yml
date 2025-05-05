@@ -17,7 +17,24 @@ resources:
     actions:
       read:
         description: Read platform statistics
+  dashboard:
+    description: Access to dashboard pages
+    actions:
+      view:
+        description: View any dashboard
 grants:
   - role: admin
     resource: admin_stats
     actions: ['read']
+  - role: admin
+    resource: dashboard
+    actions: ['view']
+  - role: candidate
+    resource: dashboard
+    actions: ['view']
+  - role: recruiter
+    resource: dashboard
+    actions: ['view']
+  - role: issuer
+    resource: dashboard
+    actions: ['view']
