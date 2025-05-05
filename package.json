@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit generate && drizzle-kit push",
-    "db:reset": "npx tsx lib/db/reset.ts"
+    "db:reset": "npx tsx lib/db/reset.ts",
+    "permit:cli": "permit login && permit apply"
   },
   "dependencies": {
     "@esbuild-kit/core-utils": "^3.3.2",
@@ -62,6 +63,7 @@
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
     "recharts": "^2.15.3",
+    "permitio": "^1.0.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.3",
     "stripe": "^18.0.0",
