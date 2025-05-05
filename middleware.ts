@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 import { signToken, verifyToken } from '@/lib/auth/session'
-import { check, ensureUserRole } from '@/lib/permit'
+import { check, ensureUserRole } from '@/lib/permit/edge'
 
 /* -------------------------------------------------------------------------- */
 /*  CONSTANTS                                                                 */
