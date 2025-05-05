@@ -1,50 +1,59 @@
-import { createRequire } from 'node:module'
-import type { IPermitConfig } from 'permitio'
-
-/* -------------------------------------------------------------------------- */
-/*                         D Y N A M I C   I M P O R T                        */
-/* -------------------------------------------------------------------------- */
-
 /**
- * Turbopack fails to bundle the ESM build of the Permit.io SDK because some
- * nested paths are not published; we therefore load the CommonJS bundle at
- * runtime using Node's createRequire, which circumvents the static analyser
- * while preserving full type-safety via a separate type-only import.
+ * Lightweight edge-compatible Permit.io helper that calls the PDP REST API directly.
+ * Avoids Node.js core modules so it can run in both Edge and Node runtimes.
  */
-const require = createRequire(import.meta.url)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Permit } = require('permitio') as typeof import('permitio')
 
-/* -------------------------------------------------------------------------- */
-/*                           S D K   I N S T A N C E                          */
-/* -------------------------------------------------------------------------- */
-
-const config: Partial<IPermitConfig> = {
-  // In production you may point this at your own PDP deployment.
-  pdp: process.env.PERMIT_PDP_URL || 'https://cloudpdp.api.permit.io',
-  token: process.env.PERMIT_API_KEY!,
-  projectId: process.env.PERMIT_PROJECT_ID!,
-}
-
-const permit = new Permit(config)
-
-/* -------------------------------------------------------------------------- */
-/*                             E X P O R T S                                  */
-/* -------------------------------------------------------------------------- */
+const PDP_URL = process.env.PERMIT_PDP_URL || 'https://cloudpdp.api.permit.io'
+const TOKEN = process.env.PERMIT_API_KEY ?? ''
 
 /**
- * Check if a user is authorised to perform an action on a resource.
+ * Perform an authorization check for a given user, action and resource.
  *
- * @param userId   – unique identifier for the user (string or numeric as string)
- * @param action   – action key, e.g. "read" | "write"
- * @param resource – resource key, e.g. "admin_stats"
- * @param context  – optional contextual ABAC attributes
+ * @param userId   Unique user identifier (string or number).
+ * @param action   Action key, e.g. "read".
+ * @param resource Resource key, e.g. "admin_stats".
+ * @param context  Optional contextual attributes for ABAC policies.
+ * @returns        Promise resolving to true when permitted, false otherwise.
  */
-export const check = (
+export async function check(
   userId: string,
   action: string,
   resource: string,
-  context?: Record<string, unknown>,
-) => permit.check(userId, action, resource, context)
+  context: Record<string, unknown> = {},
+): Promise<boolean> {
+  if (!TOKEN) {
+    console.warn('[permit] PERMIT_API_KEY is not set – denying by default')
+    return false
+  }
 
+  try {
+    const res = await fetch(`${PDP_URL}/v2/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TOKEN}`,
+      },
+      body: JSON.stringify({
+        user: typeof userId === 'number' ? String(userId) : userId,
+        action,
+        resource,
+        context,
+      }),
+    })
+
+    if (!res.ok) {
+      console.error('[permit] PDP responded with status', res.status)
+      return false
+    }
+
+    const json = (await res.json()) as { allow?: boolean }
+    return json.allow === true
+  } catch (err) {
+    console.error('[permit] PDP check failed', err)
+    return false
+  }
+}
+
+/* Default export keeps backwards compatibility with previous code. */
+const permit = { check }
 export default permit
