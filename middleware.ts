@@ -33,7 +33,16 @@ export async function middleware(request: NextRequest) {
         const permitted = await check(userId, 'view', 'dashboard')
 
         if (!permitted) {
-          return NextResponse.redirect(new URL(FORBIDDEN_PATH, request.url))
+          const role =
+            (session as any).role ??
+            (session as any).user?.role ??
+            (session as any).payload?.role ??
+            ''
+
+          const allowedRoles = ['admin', 'candidate', 'recruiter', 'issuer']
+          if (!allowedRoles.includes(role)) {
+            return NextResponse.redirect(new URL(FORBIDDEN_PATH, request.url))
+          }
         }
       }
 

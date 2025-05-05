@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  const denied = await assertPermission(String(user.id), 'read', 'admin_stats')
+  const denied = await assertPermission(user, 'read', 'admin_stats')
   if (denied?.error) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }

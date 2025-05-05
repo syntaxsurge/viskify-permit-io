@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { getTeamForUser, getUser } from '@/lib/db/queries/queries'
 import { TeamDataWithMembers, User } from '@/lib/db/schema'
-import { check } from '@/lib/permit'
+import { check, ensureUserRole } from '@/lib/permit'
 
 export type ActionState = {
   error?: string
@@ -79,12 +79,15 @@ export function withTeam<T>(action: ActionWithTeamFunction<T>) {
  * Returns { error: 'unauthorized' } when the Permit.io check fails.
  */
 export async function assertPermission(
-  userId: string,
+  user: User,
   action: string,
   resource: string,
-  context?: Record<string, unknown>,
+  context: Record<string, unknown> = {},
 ): Promise<ActionState | undefined> {
-  const permitted = await check(userId, action, resource, context)
+  // Ensure Permit knows about this user & its role before we evaluate the policy
+  await ensureUserRole(String(user.id), user.role)
+
+  const permitted = await check(String(user.id), action, resource, context)
   if (!permitted) {
     return { error: 'unauthorized' }
   }
