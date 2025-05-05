@@ -20,8 +20,8 @@ async function main() {
   console.log(`🛂  Applying Permit.io policies from ${policyDir}`)
 
   try {
-    await run('npx', ['permit', 'login', '--token', process.env.PERMIT_API_KEY ?? ''])
-    await run('npx', ['permit', 'apply', '-f', policyDir])
+    await run('pnpm', ['exec', 'permit', 'login', '--token', process.env.PERMIT_API_KEY ?? ''])
+    await run('pnpm', ['exec', 'permit', 'apply', '-f', policyDir])
     console.log('✅  Permit.io policies applied successfully')
   } catch (error) {
     console.error('❌  Failed to apply Permit.io policies')
