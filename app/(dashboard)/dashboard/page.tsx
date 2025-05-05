@@ -19,7 +19,7 @@ import CandidateCharts from '@/components/dashboard/candidate/charts'
 import IssuerCharts from '@/components/dashboard/issuer/charts'
 import RecruiterCharts from '@/components/dashboard/recruiter/charts'
 import { QuickActions } from '@/components/dashboard/quick-actions'
-import type { QuickAction } from '@/components/dashboard/quick-actions' // 👈 added
+import type { QuickAction } from '@/components/dashboard/quick-actions'
 import { RoleBadge } from '@/components/dashboard/role-badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { db } from '@/lib/db/drizzle'
@@ -45,16 +45,8 @@ export default async function DashboardPage() {
   if (!user) redirect('/sign-in')
 
   /* --------------------------- Quick actions ----------------------------- */
-  const quickActions: QuickAction[] = // 👈 annotated
-    user.role === 'admin'
-      ? [
-          {
-            label: 'View Admin Stats',
-            endpoint: '/api/admin/stats',
-            variant: 'outline',
-          },
-        ]
-      : []
+  // Admin quick action removed to avoid duplication with Platform Statistics section.
+  const quickActions: QuickAction[] = []
 
   /* ------------------------------------------------------------------ */
   /* Candidate metrics & datasets                                       */
