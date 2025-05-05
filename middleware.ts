@@ -39,17 +39,10 @@ export async function middleware(request: NextRequest) {
     /* ----------------------------- DECODE TOKEN -------------------------- */
     const session = await verifyToken(sessionCookie.value)
 
-    const userId =
-      (session as any).user?.id ??
-      (session as any).id ??
-      (session as any).userId ??
-      ''
+    const userId = (session as any).user?.id ?? (session as any).id ?? (session as any).userId ?? ''
 
     let role: string =
-      (session as any).user?.role ??
-      (session as any).role ??
-      (session as any).payload?.role ??
-      ''
+      (session as any).user?.role ?? (session as any).role ?? (session as any).payload?.role ?? ''
 
     if (typeof role === 'string') role = role.trim().toLowerCase()
 

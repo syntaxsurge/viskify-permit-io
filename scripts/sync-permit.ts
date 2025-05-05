@@ -12,9 +12,7 @@ import { createRequire } from 'module'
 //  Load Permit SDK using CommonJS require (works on Node ≥18, 20, 22)
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { Permit } = createRequire(import.meta.url)('permitio') as {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Permit: any
 }
 
@@ -43,10 +41,10 @@ const permit = new Permit({
 /* -------------------------------------------------------------------------- */
 
 const ROLES = [
-  { key: 'admin',     name: 'Admin',     description: 'Platform administrator' },
-  { key: 'candidate', name: 'Candidate', description: 'Job seeker'            },
-  { key: 'recruiter', name: 'Recruiter', description: 'Talent recruiter'      },
-  { key: 'issuer',    name: 'Issuer',    description: 'Credential issuer'     },
+  { key: 'admin', name: 'Admin', description: 'Platform administrator' },
+  { key: 'candidate', name: 'Candidate', description: 'Job seeker' },
+  { key: 'recruiter', name: 'Recruiter', description: 'Talent recruiter' },
+  { key: 'issuer', name: 'Issuer', description: 'Credential issuer' },
 ] as const
 
 const RESOURCES = [
@@ -67,10 +65,34 @@ const RESOURCES = [
 ] as const
 
 const DEMO_USERS = [
-  { key: 'admin@test.com',     email: 'admin@test.com',     first_name: 'Platform', last_name: 'Admin',     role: 'admin'     },
-  { key: 'candidate@test.com', email: 'candidate@test.com', first_name: 'Test',     last_name: 'Candidate', role: 'candidate' },
-  { key: 'issuer@test.com',    email: 'issuer@test.com',    first_name: 'Test',     last_name: 'Issuer',    role: 'issuer'    },
-  { key: 'recruiter@test.com', email: 'recruiter@test.com', first_name: 'Test',     last_name: 'Recruiter', role: 'recruiter' },
+  {
+    key: 'admin@test.com',
+    email: 'admin@test.com',
+    first_name: 'Platform',
+    last_name: 'Admin',
+    role: 'admin',
+  },
+  {
+    key: 'candidate@test.com',
+    email: 'candidate@test.com',
+    first_name: 'Test',
+    last_name: 'Candidate',
+    role: 'candidate',
+  },
+  {
+    key: 'issuer@test.com',
+    email: 'issuer@test.com',
+    first_name: 'Test',
+    last_name: 'Issuer',
+    role: 'issuer',
+  },
+  {
+    key: 'recruiter@test.com',
+    email: 'recruiter@test.com',
+    first_name: 'Test',
+    last_name: 'Recruiter',
+    role: 'recruiter',
+  },
 ] as const
 
 /* -------------------------------------------------------------------------- */

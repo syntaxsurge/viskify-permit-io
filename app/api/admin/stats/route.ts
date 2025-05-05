@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 
+import { assertPermission } from '@/lib/auth/middleware'
 import { db } from '@/lib/db/drizzle'
-import { users, teams } from '@/lib/db/schema/core'
+import { getUser } from '@/lib/db/queries/queries'
 import { candidateCredentials } from '@/lib/db/schema/candidate'
+import { users, teams } from '@/lib/db/schema/core'
 import { issuers } from '@/lib/db/schema/issuer'
 import { recruiterPipelines } from '@/lib/db/schema/recruiter'
-import { getUser } from '@/lib/db/queries/queries'
-import { assertPermission } from '@/lib/auth/middleware'
 
 /**
  * GET /api/admin/stats
@@ -26,11 +26,11 @@ export async function GET() {
   }
 
   /* ---------------------------- Aggregations ----------------------------- */
-  const totalUsers        = (await db.select().from(users)).length
-  const totalTeams        = (await db.select().from(teams)).length
-  const totalCredentials  = (await db.select().from(candidateCredentials)).length
-  const totalPipelines    = (await db.select().from(recruiterPipelines)).length
-  const totalIssuers      = (await db.select().from(issuers)).length
+  const totalUsers = (await db.select().from(users)).length
+  const totalTeams = (await db.select().from(teams)).length
+  const totalCredentials = (await db.select().from(candidateCredentials)).length
+  const totalPipelines = (await db.select().from(recruiterPipelines)).length
+  const totalIssuers = (await db.select().from(issuers)).length
 
   /* Users by role */
   const roleCounts: Record<string, number> = {}

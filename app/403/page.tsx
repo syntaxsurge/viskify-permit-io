@@ -11,14 +11,14 @@ export const metadata = {
 
 export default function ForbiddenPage() {
   return (
-    <main className="flex h-dvh flex-col items-center justify-center gap-6 px-4 text-center">
-      <h1 className="text-6xl font-bold tracking-tight">403</h1>
-      <p className="max-w-md text-lg text-muted-foreground">
+    <main className='flex h-dvh flex-col items-center justify-center gap-6 px-4 text-center'>
+      <h1 className='text-6xl font-bold tracking-tight'>403</h1>
+      <p className='text-muted-foreground max-w-md text-lg'>
         Sorry, you don&apos;t have permission to access this page.
       </p>
       <Link
-        href="/"
-        className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        href='/'
+        className='bg-primary text-primary-foreground rounded-md px-6 py-2 text-sm font-medium transition-opacity hover:opacity-90'
       >
         Go home
       </Link>
