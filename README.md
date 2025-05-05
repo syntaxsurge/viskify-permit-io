@@ -179,8 +179,6 @@ Tail the terminal to see `[permit.check]` logs confirming PDP decisions.
 ---
 
 ## 📝 Engineering Highlights
-
-- **Edge-safe SDK** – dynamic `require()` fallback keeps middleware working in Vercel Edge.
 - **Type-safe mutations** – server actions validated end-to-end with zod.
 - **Declarative UI** – functional Tailwind + shadcn components, zero global CSS overrides.
 - **Auditability** – every risky action writes to `activityLogs`, visible in the settings tab.
