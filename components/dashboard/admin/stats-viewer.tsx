@@ -33,7 +33,6 @@ export default function AdminStatsViewer() {
   /* Fetch on mount */
   useEffect(() => {
     fetchStats()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

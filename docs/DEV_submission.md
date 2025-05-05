@@ -7,51 +7,51 @@ The demo proves how a hiring platform can gate sensitive dashboards and APIs thr
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-| ----- | ---------- |
+| Layer     | Technology                                                         |
+| --------- | ------------------------------------------------------------------ |
 | Front-end | Next.js 14, React Server/Client Components, TailwindCSS, shadcn/ui |
-| AuthZ | Permit.io SDK 1.x, YAML policy synced via **permit apply** |
-| Back-end | Next.js Route Handlers & Server Actions |
-| Database | PostgreSQL + drizzle-orm |
-| Dev Ops | PNPM scripts, Vercel preview deployment |
+| AuthZ     | Permit.io SDK 1.x, YAML policy synced via **permit apply**         |
+| Back-end  | Next.js Route Handlers & Server Actions                            |
+| Database  | PostgreSQL + drizzle-orm                                           |
+| Dev Ops   | PNPM scripts, Vercel preview deployment                            |
 
 ## 🔧 Local Installation
 
 1. Clone and install:
 
-~~~bash
+```bash
 git clone https://github.com/yourname/viskify-permit-io.git
 cd viskify-permit-io
 pnpm install
-~~~
+```
 
 2. Configure environment:
 
-~~~bash
+```bash
 cp .env.example .env
 # add PERMIT_API_KEY & PERMIT_PROJECT_ID obtained from the Permit dashboard
-~~~
+```
 
 3. Sync policy & bootstrap DB:
 
-~~~bash
+```bash
 pnpm permit:cli          # login & apply ./permit/policies/base.yml
 pnpm db:push
 pnpm db:seed
-~~~
+```
 
 4. Launch dev server:
 
-~~~bash
+```bash
 pnpm dev
-~~~
+```
 
 ## 🔑 Test Accounts
 
-| Role  | Email / Username | Password          |
-| ----- | ---------------- | ----------------- |
-| Admin | **admin@test.com**        | myPassword  |
-| User  | **candidate@test.com**      | myPassword  |
+| Role  | Email / Username       | Password   |
+| ----- | ---------------------- | ---------- |
+| Admin | **admin@test.com**     | myPassword |
+| User  | **candidate@test.com** | myPassword |
 
 ## ✅ Verification Steps
 
@@ -59,9 +59,9 @@ pnpm dev
 2. Sign out, sign in as **newuser**, repeat – a "Permission required” toast appears and the endpoint returns **401**.
 3. In a second terminal, run:
 
-~~~bash
+```bash
 curl -b cookie.txt -c cookie.txt http://localhost:3000/api/admin/stats
-~~~
+```
 
 Observe success for admin cookies and failure for user cookies.
 
@@ -69,48 +69,43 @@ Observe success for admin cookies and failure for user cookies.
 
 ```yaml
 roles:
-  admin: { }
-  candidate: { }
-  recruiter: { }
-  issuer: { }
+  admin: {}
+  candidate: {}
+  recruiter: {}
+  issuer: {}
 
 resources:
   admin_stats:
     actions:
-      read: { }
+      read: {}
 
 grants:
   - role: admin
     resource: admin_stats
-    actions: ["read"]
-
-
+    actions: ['read']
 ```
 
-📸 Screenshots
--------------
+## 📸 Screenshots
 
-1. Permit dashboard showing **admin\_stats** resource and grants.
+1. Permit dashboard showing **admin_stats** resource and grants.
 2. Viskify dashboard with "Access Denied 403” page rendered for non-admins.
 3. Terminal output of the successful vs failed `curl` requests.
 
-🌟 Why Externalized Authorization?
----------------------------------
+## 🌟 Why Externalized Authorization?
 
-* **Security** – single source-of-truth policies reduce missed edge cases.
-* **Velocity** – roles/actions adapted in Permit UI propagate instantly without redeploy.
-* **Clarity** – business logic stays readable; permissions are declarative YAML.
+- **Security** – single source-of-truth policies reduce missed edge cases.
+- **Velocity** – roles/actions adapted in Permit UI propagate instantly without redeploy.
+- **Clarity** – business logic stays readable; permissions are declarative YAML.
 
-🏁 Live Demo
------------
+## 🏁 Live Demo
 
 https://viskify-permit-io.vercel.app
-*(demo auto-seeds credentials above on first launch)*
+_(demo auto-seeds credentials above on first launch)_
 
-📜 License
----------
+## 📜 License
 
-MIT © 2025 Viskify
-==================
+# MIT © 2025 Viskify
+
+```
 
 ```
