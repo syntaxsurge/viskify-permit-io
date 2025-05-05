@@ -1,144 +1,195 @@
-# Viskify
+# Viskify 🚀
 
-**Viskify** is a trust-layer for hiring that merges blockchain-signed credentials with AI-graded skill proofs.
-Candidates create a **single verifiable profile for free**, recruiters instantly filter talent by proof instead of promises, and issuers sign credentials in minutes rather than weeks.
+**Viskify** is a trust-layer for hiring that fuses **blockchain-signed credentials**, **AI-verified skills**, and **externally-managed authorization** into a single Next.js stack.
 
----
-
-## ✨ Key Features
-
-| Domain                     | Highlights                                                     |
-| -------------------------- | -------------------------------------------------------------- |
-| **Verifiable Credentials** | cheqd-issued VCs for diplomas, certificates & references       |
-| **AI Skill-Pass**          | GPT-4o grades open-text quizzes → instant SkillPass VC         |
-| **Talent Search**          | Recruiters query by skills, verified creds & scores            |
-| **Recruiter Pipelines**    | Kanban workflow with custom stages                             |
-| **Issuer Dashboard**       | Organisations review & sign credential requests                |
-| **Freemium Pricing**       | Unlimited personal usage — pay only for advanced team features |
-| **Activity Logs**          | Every critical action is auditable                             |
-| **Stripe Billing**         | Subscription & metered verification charges                    |
+*Candidates prove, recruiters verify, issuers endorse — all in minutes, not weeks.*
 
 ---
 
-## 🗺️ High-Level Workflow
+## 🏆 Why This Matters
 
-1. **Account & Team Setup** – email sign-up, auto-team creation, optional invites.
-2. **Profile & Credential Vault** – candidates upload credentials (default **Unverified**).
-3. **Verification Request** – select issuer from directory → issuer notified.
-4. **Issuer Review** – approve → VC signed on cheqd, reject → status updated.
-5. **AI Skill-Check** – pass quiz ≥ 70 % → SkillPass VC minted.
-6. **Talent Discovery** – recruiters filter/search, add to pipelines, invite.
-
----
-
-## 🏗️ Architecture
-
-| Layer        | Tech / Responsibility                                                                  |
-| ------------ | -------------------------------------------------------------------------------------- |
-| **Frontend** | Next.js 14 • React Server / Client Components • TailwindCSS + shadcn/ui • lucide-react |
-| **Backend**  | Next.js Server Actions, Route Handlers                                                 |
-| **Database** | PostgreSQL via **drizzle-orm**; typed schema generation                                |
-| **Auth**     | Signed HttpOnly cookie sessions; bcrypt hashes                                         |
-| **VC Layer** | cheqd Studio API for DID & VC issuance / verification                                  |
-| **Payments** | Stripe SDK & Webhooks                                                                  |
-| **CI / CD**  | (omitted – DevOps out-of-scope for this doc)                                           |
-
-> **Stateless server actions** + **typed drizzle queries** keep business logic close to the data while preserving React’s streaming benefits.
+| Problem | Traditional Flow | **Viskify** Flow |
+|---------|-----------------|------------------|
+| Diploma / reference forgery | Manual PDF review ☠️ | cheqd DID-signed VC ✅ |
+| Skill inflation | White-board or take-home tests 💤 | GPT-4o auto-graded **SkillPass** ✅ |
+| Internal ACL sprawl | In-code role checks 😱 | **Permit.io** central RBAC ✅ |
 
 ---
 
-## 🚀 Permit.io Authorization Challenge
+## 🔐 Permit.io Authorization Layer
 
-This repository is an entry for the **Permit.io "Permissions Redefined” challenge** showcasing fine-grained externalised authorization in a real-world hiring platform.
+Viskify delegates _all_ permission decisions to a **Permit.io PDP** so code stays free of `if (role === …)` branches.
 
-### Quick local setup
+| Concept | Viskify Mapping |
+|---------|-----------------|
+| **Roles** | `admin`, `candidate`, `recruiter`, `issuer` |
+| **Resources** | `dashboard`, `admin_stats`, plus feature-specific resources |
+| **Actions** | `view`, `read`, `create`, etc. |
+| **Policy** | `permit/policies/base.yml` (seeded via `pnpm permit:cli`) |
 
-1. Ensure **Permit CLI** is installed and you have a project API token.
-2. Copy environment template and fill Permit keys:
+### Runtime flow
+
+1. **Middleware** extracts `session` cookie ✉️.
+2. `lib/permit/check()` calls **Permit PDP** → decision.
+3. UI or API handler continues **only if `true`**.
+4. Roles & resources can be tweaked live in the Permit UI — no redeploy needed.
+
+See **`lib/permit/index.ts`** for the Edge/Node-safe helper and **`middleware.ts`** for request-time guards.
+
+---
+
+## 🗺️ System Architecture
+
+| Layer | Stack |
+|-------|-------|
+| **Frontend** | Next.js 15 App Router · RSC / Client Components · TailwindCSS + shadcn/ui |
+| **Backend** | Next.js Route Handlers & Server Actions |
+| **DB** | PostgreSQL + **drizzle-orm** typed schema & migrations |
+| **Auth** | JWT in Http-Only cookie, bcrypt password hash |
+| **Authorization** | **Permit.io PDP v2** container (or Cloud PDP) |
+| **Verifiable Credentials** | **cheqd** DID & VC APIs |
+| **Payments** | Stripe SDK + Webhooks |
+| **AI** | OpenAI (gpt-4o) for skill-quiz grading |
+
+> Business logic lives beside data through Server Actions while **Permit.io** enforces security completely outside your codebase.
+
+---
+
+## 👥 Roles & Real-World Flows
+
+| Role | Capabilities (via Permit.io) | Real-world analogy |
+|------|------------------------------|--------------------|
+| **Admin** | View global dashboard, stats, user management. | Platform operator |
+| **Candidate** | Manage profile, request credential verification, take AI quizzes. | Job seeker |
+| **Recruiter** | Search talent, build pipelines, invite candidates. | Hiring manager |
+| **Issuer** | Approve / reject verification requests, sign VCs. | University or former employer |
+
+### Example interaction
+
+1. **Candidate** uploads certificate → status `unverified`.
+2. **Issuer** (permission: `credential:verify`) reviews & signs → cheqd VC minted.
+3. **Recruiter** (permission: `talent:view`) filters candidates where `credential.status == verified`.
+4. **Admin** monitors metrics via `/api/admin/stats` (needs `admin_stats:read`).
+
+---
+
+## 🌐 Web3 & DID Integration
+
+* **DID creation** – Candidates & issuers generate W3C-compliant identifiers through cheqd.
+* **VC issuance** – Issuers sign JSON-LD credentials; proof stored on cheqd ledger.
+* **Verification** – Recruiters / third-parties can independently resolve & verify proofs.
+
+The VC payload is never stored client-side; only the hash & URI are referenced to keep PII off-chain.
+
+---
+
+## 🧪 Test Accounts (auto-seeded)
+
+| Email | Role | Password |
+|-------|------|----------|
+| `admin@test.com` | admin | **myPassword** |
+| `candidate@test.com` | candidate | **myPassword** |
+| `recruiter@test.com` | recruiter | **myPassword** |
+| `issuer@test.com` | issuer | **myPassword** |
+
+*(Credentials come from **`lib/db/seed/userTeam.ts`**)*
+You may of course register fresh accounts — they will be synced to Permit automatically.
+
+---
+
+## ⚙️ Local Setup
+
+~~~bash
+# 0 · Prereqs: Node ≥20, Docker (for local PDP), pnpm
+git clone https://github.com/your-org/viskify.git
+cd viskify-permit-io
+pnpm install
+~~~
+
+### 1 · Environment
 
 ~~~bash
 cp .env.example .env
-echo "PERMIT_API_KEY=pk_live_your_token" >> .env
-echo "PERMIT_PROJECT_ID=prj_your_id"     >> .env
+# -- Fill PERMIT_API_KEY + optional PERMIT_PDP_URL if running locally
 ~~~
 
-3. Apply the predefined RBAC policy:
+### 2 · Permit.io bootstrap (roles, resources, demo users)
 
 ~~~bash
 pnpm permit:cli
+# ➜ seeds roles/resources via scripts/sync-permit.ts
 ~~~
 
-4. Start the stack:
+### 3 · Database
 
 ~~~bash
-pnpm install
-pnpm db:push
-pnpm db:seed
-pnpm dev
+pnpm db:push   # run migrations
+pnpm db:seed   # quizzes, Stripe products, demo teams
 ~~~
 
-### Test the authorization flow
-
-Login as **admin / 2025DEVChallenge** then hit the secret endpoint:
+### 4 · (Option-al) run a local PDP
 
 ~~~bash
-curl -b cookie.txt -c cookie.txt http://localhost:3000/api/admin/stats
-# → { "users": 42, "credentials": 128 }
+docker run -it -p 7766:7000 \
+  -e PDP_API_KEY=$PERMIT_API_KEY \
+  -e PDP_DEBUG=true \
+  permitio/pdp-v2:latest
 ~~~
 
-Logout or switch to the **newuser / 2025DEVChallenge** account and retry – you should receive `401 unauthorized`.
-
-### Explore and tweak policies
-
-~~~bash
-permit ui --open
-~~~
-
-Use the Permit dashboard to edit roles, actions or resources and watch the app respond in real time.
-
----
-
-## 🚀 Getting Started
-
-### 1 · Install dependencies
-
-~~~bash
-pnpm install
-~~~
-
-### 2 · Copy & fill env vars
-
-~~~bash
-cp .env.example .env
-~~~
-
-### 3 · Run DB migrations & seed data
-
-~~~bash
-pnpm db:push     # drizzle-kit push
-pnpm db:seed     # seeds users, quizzes, stripe products
-~~~
-
-### 4 · Dev server
+### 5 · Launch dev server
 
 ~~~bash
 pnpm dev
 ~~~
 
-Navigate to **http://localhost:3000** – sign up and explore for free.
+Visit **http://localhost:3000** and sign in with the test credentials above.
 
 ---
 
-### 🛠️ Engineering Notes
+## 🔍 Verify Authorization in Action
 
-* **Type Safety** – end-to-end zod validation on every mutation, plus drizzle-orm type inference.
-* **UI Guidelines** – Tailwind, shadcn/ui, 2xl rounded corners, XL headings, soft shadows.
-* **Accessibility** – focus rings, semantic HTML tags, aria-hidden handled where necessary.
-* **Caching** – `revalidate` directives keep the landing static while dynamic sections re-render hourly.
-* **Security** – VC issuance keys & Stripe secrets never leak to the client; server actions enforce role-based guards.
+~~~bash
+# Login as admin to fetch aggregate stats
+curl -X GET -L --cookie "session=<your cookie>" http://localhost:3000/api/admin/stats
+# → JSON payload
+
+# Switch to candidate session — should yield 401
+~~~
+
+Tail the terminal to see `[permit.check]` logs confirming PDP decisions.
 
 ---
 
-### 📜 License
+## 🛠️ Useful Commands
 
-MIT © 2025 Viskify
+| Script | Purpose |
+|--------|---------|
+| `pnpm permit:cli` | Idempotent seeding of Permit roles/resources/demo users |
+| `pnpm db:push` | Apply latest migrations via drizzle-kit |
+| `pnpm db:seed` | Seed quizzes, Stripe products, teams |
+| `pnpm db:reset` | Drop & recreate the entire database |
+| `pnpm dev` | Start Next.js + Hot Reload |
+| `pnpm build && pnpm start` | Production build & run |
+
+---
+
+## 📝 Engineering Highlights
+
+* **Edge-safe SDK** – dynamic `require()` fallback keeps middleware working in Vercel Edge.
+* **Type-safe mutations** – server actions validated end-to-end with zod.
+* **Declarative UI** – functional Tailwind + shadcn components, zero global CSS overrides.
+* **Auditability** – every risky action writes to `activityLogs`, visible in the settings tab.
+* **Zero-trust authz** – fail-close: if the PDP is unreachable the request is denied.
+
+---
+
+### 🤝 Credits
+
+* **Permit.io** for the elegant PDP & CLI.
+* **cheqd** for developer-friendly DID & VC APIs.
+* **OpenAI** for GPT-4o scoring magic.
+* Icons by **lucide-react**; charts by **Recharts**.
+
+---
+
+Happy hacking, and may the best auth win! ✨
