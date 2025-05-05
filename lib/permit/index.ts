@@ -1,11 +1,8 @@
 /**
- * lib/permit/index.ts — central Permit.io helper with Edge-runtime fallbacks.
- *
- * In the V8 isolate used by Next.js edge middleware the Node-only `permitio`
- * package cannot be required, which previously threw and cleared the session
- * cookie. We now detect that environment and transparently short-circuit
- * all SDK calls so the application keeps working (policy is still enforced
- * server-side where the SDK *is* available).
+ * lib/permit/index.ts — central Permit.io helper that works both in Node
+ * and in the Edge Runtime.  The Permit SDK cannot run in the Edge isolate,
+ * so we return graceful fall-backs there while using a lazy dynamic import
+ * (`import()`) inside Node environments.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -29,7 +26,7 @@ if (!PERMIT_API_KEY && !IS_EDGE_RUNTIME) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                       LAZY-LOAD THE SDK WHEN POSSIBLE                      */
+/*                           LAZY-LOAD SDK IN NODE                            */
 /* -------------------------------------------------------------------------- */
 
 type PermitCtor = typeof import('permitio').Permit
@@ -44,16 +41,9 @@ async function getPermit(): Promise<InstanceType<PermitCtor>> {
   /* ------------------------ Load & cache the SDK in Node ----------------- */
   if (_permit) return _permit
 
-  const req: NodeJS.Require | undefined =
-    // Prefer the global require injected by Node; fall back to eval-hack for ESM runtimes
-    (globalThis as any).require || (typeof eval === 'function' ? eval('require') : undefined)
-
-  if (typeof req !== 'function') {
-    // Keeps TypeScript happy (avoids TS2722) and fails fast in exotic runtimes
-    throw new Error('Dynamic require is not available in this runtime')
-  }
-
-  const { Permit } = req('permitio') as { Permit: PermitCtor }
+  /* Dynamic import avoids `eval` / `require` which are disallowed in Edge. */
+  const moduleName = 'permitio' // prevent static analyser from bundling in edge
+  const { Permit } = (await import(moduleName)) as { Permit: PermitCtor }
 
   _permit = new Permit({
     token: PERMIT_API_KEY,
@@ -70,7 +60,7 @@ async function getPermit(): Promise<InstanceType<PermitCtor>> {
 
 /**
  * Check if the user may perform an action on a resource.
- * Returns `false` (fail close) when the SDK cannot be used.
+ * Returns `false` (fail-close) in Edge or when the SDK cannot be used.
  */
 export async function check(
   userId: string,
@@ -79,6 +69,9 @@ export async function check(
   context: Record<string, unknown> = {},
   tenant = PERMIT_TENANT_KEY,
 ): Promise<boolean> {
+  /* Edge runtime cannot use the SDK – deny by default */
+  if (IS_EDGE_RUNTIME) return false
+
   try {
     const permit = await getPermit()
     const permitted = await permit.check({ key: String(userId) }, action, resource, {
@@ -95,13 +88,16 @@ export async function check(
 
 /**
  * Ensure the user exists in Permit and has the given role.
- * No-op in Edge runtime; never rethrows so middleware can continue.
+ * No-op in Edge runtime; never re-throws so middleware can continue.
  */
 export async function ensureUserRole(
   userId: string,
   role: string,
   tenant = PERMIT_TENANT_KEY,
 ): Promise<void> {
+  /* Skip completely in Edge runtime */
+  if (IS_EDGE_RUNTIME) return
+
   try {
     const permit = await getPermit()
 
@@ -116,7 +112,7 @@ export async function ensureUserRole(
       if (e?.response?.status !== 409) throw e
     }
   } catch (err) {
-    /* Edge runtime or other non-fatal error — log & carry on */
+    /* Non-fatal – log & carry on */
     console.warn('[permit.ensureUserRole] Skipped –', (err as Error).message)
   }
 }
