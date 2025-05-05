@@ -19,6 +19,7 @@ import CandidateCharts from '@/components/dashboard/candidate/charts'
 import IssuerCharts from '@/components/dashboard/issuer/charts'
 import RecruiterCharts from '@/components/dashboard/recruiter/charts'
 import { QuickActions } from '@/components/dashboard/quick-actions'
+import type { QuickAction } from '@/components/dashboard/quick-actions' // 👈 added
 import { RoleBadge } from '@/components/dashboard/role-badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { db } from '@/lib/db/drizzle'
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/sign-in')
 
   /* --------------------------- Quick actions ----------------------------- */
-  const quickActions =
+  const quickActions: QuickAction[] = // 👈 annotated
     user.role === 'admin'
       ? [
           {
