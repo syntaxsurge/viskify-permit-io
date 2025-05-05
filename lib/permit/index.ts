@@ -11,7 +11,7 @@
 
 const {
   PERMIT_API_KEY = '',
-  PERMIT_PDP_URL = 'http://localhost:7766', // Local PDP by default
+  PERMIT_PDP_URL = 'https://cloudpdp.api.permit.io', // Cloud PDP by default
   PERMIT_TENANT_KEY = 'default',
 } = process.env
 
