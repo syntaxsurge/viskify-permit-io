@@ -3,7 +3,7 @@
  *
  * In the V8 isolate used by Next.js edge middleware the Node-only `permitio`
  * package cannot be required, which previously threw and cleared the session
- * cookie.  We now detect that environment and transparently short-circuit
+ * cookie. We now detect that environment and transparently short-circuit
  * all SDK calls so the application keeps working (policy is still enforced
  * server-side where the SDK *is* available).
  */
@@ -45,7 +45,15 @@ async function getPermit(): Promise<InstanceType<PermitCtor>> {
   if (_permit) return _permit
 
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const req: NodeRequire | undefined = (globalThis as any).require || eval('require')
+  const req: NodeRequire | undefined =
+    // Prefer the global require injected by Node; fall back to eval-hack for ESM runtimes
+    (globalThis as any).require || (typeof eval === 'function' ? eval('require') : undefined)
+
+  if (typeof req !== 'function') {
+    // Keeps TypeScript happy (avoids TS2722) and fails fast in exotic runtimes
+    throw new Error('Dynamic require is not available in this runtime')
+  }
+
   const { Permit } = req('permitio') as { Permit: PermitCtor }
 
   _permit = new Permit({
