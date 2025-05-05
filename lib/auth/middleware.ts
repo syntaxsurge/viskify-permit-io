@@ -88,6 +88,15 @@ export async function assertPermission(
   await ensureUserRole(String(user.id), user.role)
 
   const permitted = await check(String(user.id), action, resource, context)
+
+  console.log('[assertPermission]', {
+    userId: user.id,
+    role: user.role,
+    action,
+    resource,
+    permitted,
+  })
+
   if (!permitted) {
     return { error: 'unauthorized' }
   }

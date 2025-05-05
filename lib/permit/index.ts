@@ -1,62 +1,69 @@
 /**
- * Centralised Permit.io helper built around the official Node SDK.
- * The SDK is loaded lazily with CommonJS require to sidestep missing
- * sub-path exports and to keep Edge-runtime builds free of Node core
- * dependencies.
+ * lib/permit/index.ts — central Permit.io helper with Edge-runtime fallbacks.
+ *
+ * In the V8 isolate used by Next.js edge middleware the Node-only `permitio`
+ * package cannot be required, which previously threw and cleared the session
+ * cookie.  We now detect that environment and transparently short-circuit
+ * all SDK calls so the application keeps working (policy is still enforced
+ * server-side where the SDK *is* available).
  */
 
 /* -------------------------------------------------------------------------- */
-/*                               Configuration                                */
+/*                              RUNTIME DETECTION                             */
+/* -------------------------------------------------------------------------- */
+
+const IS_EDGE_RUNTIME = typeof (globalThis as any).EdgeRuntime !== 'undefined'
+
+/* -------------------------------------------------------------------------- */
+/*                               CONFIGURATION                                */
 /* -------------------------------------------------------------------------- */
 
 const {
   PERMIT_API_KEY = '',
-  PERMIT_PDP_URL = 'https://cloudpdp.api.permit.io', // Cloud PDP by default
+  PERMIT_PDP_URL = 'https://cloudpdp.api.permit.io',
   PERMIT_TENANT_KEY = 'default',
 } = process.env
 
-if (!PERMIT_API_KEY) {
+if (!PERMIT_API_KEY && !IS_EDGE_RUNTIME) {
   throw new Error('PERMIT_API_KEY environment variable must be provided')
 }
 
 /* -------------------------------------------------------------------------- */
-/*                       Lazy initialisation of the SDK                       */
+/*                       LAZY-LOAD THE SDK WHEN POSSIBLE                      */
 /* -------------------------------------------------------------------------- */
 
-type PermitType = typeof import('permitio').Permit
-let _permit: InstanceType<PermitType> | null = null
+type PermitCtor = typeof import('permitio').Permit
+let _permit: InstanceType<PermitCtor> | null = null
 
-/**
- * Dynamically loads the CommonJS build of the Permit SDK the first time it is
- * needed.  Using eval('require') avoids bundling Node core modules, keeping
- * Edge runtimes happy while still working in Node.js.
- */
-async function getPermit() {
+async function getPermit(): Promise<InstanceType<PermitCtor>> {
+  /* ------------------------- Edge runtime short-circuit ------------------ */
+  if (IS_EDGE_RUNTIME) {
+    throw new Error('Permit SDK unavailable in Edge runtime')
+  }
+
+  /* ------------------------ Load & cache the SDK in Node ----------------- */
   if (_permit) return _permit
 
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
-  const requireFn: NodeRequire | undefined = (globalThis as any).require || eval('require')
-  if (!requireFn) {
-    throw new Error('Permit SDK cannot be loaded in this runtime environment')
-  }
+  const req: NodeRequire | undefined = (globalThis as any).require || eval('require')
+  const { Permit } = req('permitio') as { Permit: PermitCtor }
 
-  const { Permit } = requireFn('permitio') as { Permit: PermitType }
   _permit = new Permit({
     token: PERMIT_API_KEY,
     pdp: PERMIT_PDP_URL,
-    log: { level: 'debug' }, // For verbose logging
+    log: { level: process.env.NODE_ENV === 'development' ? 'debug' : 'error' },
   })
 
   return _permit
 }
 
 /* -------------------------------------------------------------------------- */
-/*                          Permission enforcement API                        */
+/*                          PERMISSION ENFORCEMENT API                        */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Returns `true` when the user is permitted to perform the action on the
- * resource within the given tenant; denies by default on errors.
+ * Check if the user may perform an action on a resource.
+ * Returns `false` (fail close) when the SDK cannot be used.
  */
 export async function check(
   userId: string,
@@ -67,30 +74,42 @@ export async function check(
 ): Promise<boolean> {
   try {
     const permit = await getPermit()
-    return await permit.check({ key: userId }, action, resource, { tenant, ...context })
-  } catch {
-    return false // fail-closed
+    const permitted = await permit.check({ key: String(userId) }, action, resource, {
+      tenant,
+      ...context,
+    })
+    console.debug('[permit.check]', { userId, action, resource, permitted })
+    return permitted
+  } catch (err) {
+    console.warn('[permit.check] Falling back –', (err as Error).message)
+    return false
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*                   User synchronisation & role assignment                   */
-/* -------------------------------------------------------------------------- */
-
+/**
+ * Ensure the user exists in Permit and has the given role.
+ * No-op in Edge runtime; never rethrows so middleware can continue.
+ */
 export async function ensureUserRole(
   userId: string,
   role: string,
   tenant = PERMIT_TENANT_KEY,
 ): Promise<void> {
-  const permit = await getPermit()
-
-  // Upsert user
-  await permit.api.users.sync({ key: userId })
-
-  // Assign role; ignore conflicts
   try {
-    await permit.api.roleAssignments.assign({ user: userId, role, tenant })
-  } catch (err: any) {
-    if (err?.response?.status !== 409) throw err
+    const permit = await getPermit()
+
+    /* Upsert user */
+    await permit.api.users.sync({ key: String(userId) })
+
+    /* Assign role (ignore duplicates) */
+    try {
+      await permit.api.roleAssignments.assign({ user: String(userId), role, tenant })
+      console.debug('[permit.ensureUserRole] Assigned', { userId, role, tenant })
+    } catch (e: any) {
+      if (e?.response?.status !== 409) throw e
+    }
+  } catch (err) {
+    /* Edge runtime or other non-fatal error — log & carry on */
+    console.warn('[permit.ensureUserRole] Skipped –', (err as Error).message)
   }
 }

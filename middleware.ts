@@ -3,37 +3,40 @@ import type { NextRequest } from 'next/server'
 
 import { signToken, verifyToken } from '@/lib/auth/session'
 import { check, ensureUserRole } from '@/lib/permit'
-import { getUser } from '@/lib/db/queries/queries'
 
 /* -------------------------------------------------------------------------- */
-/*  Constants                                                                 */
+/*  CONSTANTS                                                                 */
 /* -------------------------------------------------------------------------- */
 
 const PROTECTED_PREFIX = '/dashboard'
 const FORBIDDEN_PATH = '/403'
+const isProd = process.env.NODE_ENV === 'production'
+
+console.log('[middleware] Booting – ENV:', process.env.NODE_ENV)
 
 /* -------------------------------------------------------------------------- */
-/*  Edge Middleware                                                           */
+/*  EDGE-COMPATIBLE MIDDLEWARE                                                */
 /* -------------------------------------------------------------------------- */
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isProtectedRoute = pathname.startsWith(PROTECTED_PREFIX)
 
-  /* --------------------------- Unauthenticated ---------------------------- */
+  /* --------------------------- UNAUTHENTICATED --------------------------- */
   const sessionCookie = request.cookies.get('session')
   if (isProtectedRoute && !sessionCookie) {
+    console.warn('[middleware] No session cookie – redirecting to /sign-in')
     return NextResponse.redirect(new URL('/sign-in', request.url))
   }
 
-  /* --------------------------- Default response --------------------------- */
+  /* --------------------------- DEFAULT RESPONSE -------------------------- */
   let response = NextResponse.next()
 
-  /* ------------------------------ No session ------------------------------ */
+  /* ------------------------------ NO SESSION ----------------------------- */
   if (!sessionCookie) return response
 
   try {
-    /* ---------------------------- Decode token ---------------------------- */
+    /* ----------------------------- DECODE TOKEN -------------------------- */
     const session = await verifyToken(sessionCookie.value)
 
     const userId =
@@ -48,65 +51,57 @@ export async function middleware(request: NextRequest) {
       (session as any).payload?.role ??
       ''
 
-    if (typeof role === 'string') {
-      role = role.trim().toLowerCase()
-    }
+    if (typeof role === 'string') role = role.trim().toLowerCase()
 
-    /* -------------- Fallback: fetch role from DB if missing --------------- */
-    if (!role) {
-      try {
-        const dbUser = await getUser()
-        role = dbUser?.role?.trim().toLowerCase() ?? ''
-        console.log('[middleware] role fetched from DB:', role)
-      } catch (err) {
-        console.error('[middleware] failed to fetch role from DB:', err)
-      }
-    }
+    console.log('[middleware] Decoded session', { userId, role, path: pathname })
 
-    console.log('[middleware] request', {
-      path: pathname,
-      userId,
-      role,
-      protected: isProtectedRoute,
-    })
-
-    /* ------------------------- Authorisation check ------------------------ */
+    /* ------------------------- AUTHORISATION CHECK ----------------------- */
     if (isProtectedRoute) {
-      if (role) {
+      if (userId && role) {
         await ensureUserRole(String(userId), role)
       }
 
       const permitted = await check(String(userId), 'view', 'dashboard')
-      console.log('[middleware] permit.check result:', permitted)
+      console.log('[middleware] permit.check', {
+        userId,
+        action: 'view',
+        resource: 'dashboard',
+        permitted,
+      })
 
-      // Fallback: if Permit cannot be reached (permitted === false) but
-      // user has a recognised role, allow access.
+      // Fallback: allow recognised roles if Permit is unreachable
       const roleWhitelist = ['admin', 'candidate', 'recruiter', 'issuer'] as const
-
       if (!permitted && !roleWhitelist.includes(role as (typeof roleWhitelist)[number])) {
-        console.warn('[middleware] access denied – redirecting to 403')
+        console.warn('[middleware] Access denied – redirecting to 403', { userId, role })
         return NextResponse.redirect(new URL(FORBIDDEN_PATH, request.url))
       }
     }
 
-    /* ---------------------- Rolling session refresh ----------------------- */
+    /* ---------------------- ROLLING SESSION REFRESH ---------------------- */
     if (request.method === 'GET') {
       const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      const newToken = await signToken({
+        ...(session as any),
+        expires: expiresInOneDay.toISOString(),
+      })
+
+      console.log('[middleware] Refreshing session cookie', {
+        userId,
+        role,
+        secure: isProd,
+      })
 
       response.cookies.set({
         name: 'session',
-        value: await signToken({
-          ...(session as any),
-          expires: expiresInOneDay.toISOString(),
-        }),
+        value: newToken,
         httpOnly: true,
-        secure: true,
+        secure: isProd,
         sameSite: 'lax',
         expires: expiresInOneDay,
       })
     }
   } catch (error) {
-    console.error('[middleware] session error:', error)
+    console.error('[middleware] Session error:', error)
     const res = NextResponse.redirect(new URL('/sign-in', request.url))
     res.cookies.delete('session')
     return res
