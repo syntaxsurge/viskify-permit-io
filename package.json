@@ -16,7 +16,7 @@
     "db:studio": "drizzle-kit studio",
     "db:push": "drizzle-kit generate && drizzle-kit push",
     "db:reset": "npx tsx lib/db/reset.ts",
-    "permit:cli": "pnpm dlx @permitio/cli login && pnpm dlx @permitio/cli apply"
+    "permit:cli": "permit login && permit apply"
   },
   "dependencies": {
     "@esbuild-kit/core-utils": "^3.3.2",
